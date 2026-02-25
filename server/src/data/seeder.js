@@ -1,0 +1,75 @@
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import User from '../models/userModel.js';
+import Product from '../models/productModel.js';
+import Order from '../models/orderModel.js';
+import products from './products.js';
+import { connectDB } from '../config/db.js';
+
+dotenv.config({ path: '../../.env' }); // Reaching the root .env
+
+connectDB();
+
+const seedDatabase = async () => {
+  try {
+    // 1. Clear existing data
+    await Order.deleteMany();
+    await Product.deleteMany();
+    await User.deleteMany();
+
+    // 2. Create Admin and VIP User
+    const createdUsers = await User.create([
+      {
+        name: 'Admin Balobali',
+        email: 'admin@balobali.com',
+        password: 'password123',
+        role: 'admin',
+        isVerified: true,
+      },
+      {
+        name: 'VIP Client',
+        email: 'client@luxe.com',
+        password: 'password123',
+        role: 'user',
+      }
+    ]);
+
+    const adminUser = createdUsers[0]._id;
+
+    // 3. Map products to the database with images
+    const sampleProducts = products.map((p) => {
+      return {
+        ...p,
+        images: [p.query ? `https://source.unsplash.com/800x1200/?luxury,${p.query},fashion` : 'https://source.unsplash.com/800x1200/?luxury,fashion'], // Generating unsplash dynamic mock
+      };
+    });
+
+    await Product.insertMany(sampleProducts);
+
+    console.log('Luxury Catalog Seeded Successfully!');
+    process.exit();
+  } catch (error) {
+    console.error(`Error with seeder: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+const destroyDatabase = async () => {
+  try {
+    await Order.deleteMany();
+    await Product.deleteMany();
+    await User.deleteMany();
+    
+    console.log('Data Destroyed!');
+    process.exit();
+  } catch (error) {
+    console.error(`Error destroying data: ${error.message}`);
+    process.exit(1);
+  }
+};
+
+if (process.argv[2] === '-d') {
+  destroyDatabase();
+} else {
+  seedDatabase();
+}
